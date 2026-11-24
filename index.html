@@ -1,0 +1,286 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Arcade</title>
+<meta name="theme-color" content="#0a1020">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Arcade">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<link rel="stylesheet" href="fonts/fonts.css">
+<style>
+/* Layout: una colonna centrata con intestazione, griglia di schede-gioco e una sezione per l'aggiornamento dell'app. */
+:root {
+  --bg: #0a1020;
+  --panel: #111a33;
+  --line: #27375f;
+  --fg: #e2eaff;
+  --muted: #8193c4;
+  --accent: #ffd23f;
+  --on-accent: #0a1020;
+  --well: #060b17;
+  --scan: rgba(0, 0, 0, 0.16);
+  --display: 'Press Start 2P', 'Courier New', monospace;
+  --text: 'IBM Plex Mono', ui-monospace, 'Courier New', monospace;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html { background: var(--bg); }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--text);
+  font-size: 14px;
+  line-height: 1.5;
+  padding-top: calc(24px + env(safe-area-inset-top, 0px));
+  padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  -webkit-tap-highlight-color: transparent;
+}
+body::after {
+  content: ""; position: fixed; inset: 0; z-index: 10; pointer-events: none;
+  background: repeating-linear-gradient(to bottom, transparent 0 2px, var(--scan) 2px 3px);
+}
+.app { max-width: 760px; margin: 0 auto; display: flex; flex-direction: column; gap: 28px; }
+
+header { display: flex; flex-direction: column; gap: 12px; padding-bottom: 20px; border-bottom: 2px solid var(--line); }
+h1 { margin: 0; font-family: var(--display); font-size: 26px; font-weight: 400; letter-spacing: 0.1em; color: var(--accent); text-transform: uppercase; text-shadow: 3px 3px 0 var(--well); }
+.lead { margin: 0; color: var(--muted); font-size: 13px; max-width: 46ch; }
+
+h2 { margin: 0; font-family: var(--display); font-size: 9px; font-weight: 400; letter-spacing: 0.1em; color: var(--muted); text-transform: uppercase; }
+.games-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin-bottom: 12px; }
+.count { font-family: var(--display); font-size: 9px; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+.grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr)); }
+
+.card { background: var(--panel); border: 2px solid var(--line); padding: 14px; display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.card:hover { border-color: var(--accent); }
+.shot { background: var(--well); padding: 14px; display: flex; justify-content: center; }
+.pieces { display: grid; grid-template-columns: repeat(var(--cols), 16px); grid-auto-rows: 16px; }
+.pieces i { display: block; }
+.pieces i.b {
+  background: var(--c);
+  box-shadow: inset 2px 2px 0 rgba(255,255,255,0.45), inset -2px -2px 0 rgba(0,0,0,0.4);
+}
+.meta { display: flex; flex-direction: column; gap: 6px; flex: 1; min-width: 0; }
+.tag { font-family: var(--display); font-size: 8px; letter-spacing: 0.1em; color: var(--muted); text-transform: uppercase; }
+h3 { margin: 0; font-family: var(--display); font-size: 12px; font-weight: 400; line-height: 1.5; letter-spacing: 0.05em; color: var(--fg); text-transform: uppercase; overflow-wrap: anywhere; }
+.desc { margin: 0; font-size: 12px; color: var(--muted); }
+
+.btn {
+  display: block; text-align: center; text-decoration: none; cursor: pointer;
+  font-family: var(--display); font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase;
+  color: var(--on-accent); background: var(--accent); border: 2px solid var(--accent);
+  padding: 12px 18px; border-radius: 0;
+}
+.btn:hover:not(:disabled) { background: var(--fg); border-color: var(--fg); }
+.btn:active:not(:disabled) { transform: translateY(1px); }
+.btn:disabled { opacity: 0.4; cursor: default; }
+.btn:focus-visible { outline: 2px solid var(--fg); outline-offset: 2px; }
+.btn.sec { font-size: 9px; background: var(--well); color: var(--fg); border-color: var(--line); }
+.btn.sec:hover:not(:disabled) { background: var(--well); border-color: var(--accent); }
+.btn.sec.ready { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+
+.card.soon { background: transparent; border-style: dashed; justify-content: center; align-items: center; text-align: center; min-height: 220px; }
+.card.soon:hover { border-color: var(--line); }
+.soon p { margin: 0; font-size: 12px; color: var(--muted); max-width: 22ch; }
+.insert { font-family: var(--display); font-size: 10px; letter-spacing: 0.1em; color: var(--accent); text-transform: uppercase; animation: blink 1.2s steps(2, jump-none) infinite; }
+@keyframes blink { 50% { opacity: 0.25; } }
+
+.update { background: var(--panel); border: 2px solid var(--line); padding: 14px; display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; }
+.update .info { display: flex; flex-direction: column; gap: 6px; flex: 1 1 200px; min-width: 0; }
+.update p { margin: 0; font-size: 12px; color: var(--muted); }
+
+@media (prefers-reduced-motion: reduce) { .insert { animation: none; } .btn:active { transform: none; } }
+@media (max-width: 480px) { h1 { font-size: 20px; } }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1>Arcade</h1>
+    <p class="lead">La sala giochi. Scegli un cabinato e premi Gioca.</p>
+  </header>
+
+  <main>
+    <div class="games-head">
+      <h2>Giochi</h2>
+      <span class="count" id="count"></span>
+    </div>
+    <div class="grid" id="grid"></div>
+  </main>
+
+  <section class="update" aria-label="Aggiornamento dell'app">
+    <div class="info">
+      <h2>App</h2>
+      <p id="status" aria-live="polite">Preparo l'uso offline…</p>
+    </div>
+    <button class="btn sec" id="updateBtn" type="button">Controlla aggiornamenti</button>
+  </section>
+</div>
+
+<script>
+/* Per aggiungere un gioco: crea la sua cartella (come tetris/), copia un oggetto qui sotto
+   e aggiungi i suoi file all'elenco CORE di sw.js.
+   icon: righe di lettere (I O T S Z J L = colore del pezzo, "." = vuoto). */
+var GAMES = [
+  {
+    title: 'Blocchi Arcade',
+    tag: 'Tetris',
+    desc: 'Incastra i pezzi e completa le righe. Più righe fai insieme, più punti ottieni.',
+    url: 'tetris/',
+    icon: ['.T..J', 'TTT.J', '.OOJJ', '.OOSS', 'IILSS']
+  }
+];
+
+var COLORS = { I: '#3fe0ff', O: '#ffd23f', T: '#b866ff', S: '#4ade6a', Z: '#ff4d5e', J: '#4d7cff', L: '#ff9a3c' };
+
+function el(tag, cls, text) {
+  var n = document.createElement(tag);
+  if (cls) n.className = cls;
+  if (text) n.textContent = text;
+  return n;
+}
+
+function icon(rows) {
+  var cols = Math.max.apply(null, rows.map(function (r) { return r.length; }));
+  var wrap = el('div', 'shot');
+  var g = el('div', 'pieces');
+  g.style.setProperty('--cols', cols);
+  g.setAttribute('aria-hidden', 'true');
+  rows.forEach(function (r) {
+    for (var i = 0; i < cols; i++) {
+      var c = r.charAt(i), cell = el('i', COLORS[c] ? 'b' : '');
+      if (COLORS[c]) cell.style.setProperty('--c', COLORS[c]);
+      g.appendChild(cell);
+    }
+  });
+  wrap.appendChild(g);
+  return wrap;
+}
+
+function card(game) {
+  var c = el('article', 'card');
+  c.appendChild(icon(game.icon));
+  var m = el('div', 'meta');
+  m.appendChild(el('span', 'tag', game.tag));
+  m.appendChild(el('h3', '', game.title));
+  m.appendChild(el('p', 'desc', game.desc));
+  c.appendChild(m);
+  var a = el('a', 'btn', 'Gioca');
+  a.href = game.url;
+  a.setAttribute('aria-label', 'Gioca a ' + game.title);
+  c.appendChild(a);
+  return c;
+}
+
+var grid = document.getElementById('grid');
+GAMES.forEach(function (g) { grid.appendChild(card(g)); });
+
+var soon = el('div', 'card soon');
+soon.appendChild(el('span', 'insert', 'Insert coin'));
+soon.appendChild(el('span', 'tag', 'Prossimamente'));
+soon.appendChild(el('p', '', 'Qui arriveranno i prossimi giochi.'));
+grid.appendChild(soon);
+
+document.getElementById('count').textContent = GAMES.length + (GAMES.length === 1 ? ' disponibile' : ' disponibili');
+
+/* ---- Installazione e aggiornamenti ---- */
+(function () {
+  var statusEl = document.getElementById('status');
+  var btn = document.getElementById('updateBtn');
+  if (!('serviceWorker' in navigator)) {
+    statusEl.textContent = 'Uso offline non disponibile qui. Apri la pagina da un indirizzo https.';
+    btn.hidden = true;
+    return;
+  }
+
+  var version = '', reg = null, waiting = null, reloading = false, lastCheck = Date.now();
+  var hadController = !!navigator.serviceWorker.controller;
+
+  function say(t) { statusEl.textContent = t; }
+  function vtxt() { return version ? ' · v' + version : ''; }
+
+  function showReady(w) {
+    waiting = w;
+    say('Nuova versione pronta.');
+    btn.textContent = 'Aggiorna e riavvia';
+    btn.classList.add('ready');
+    btn.disabled = false;
+  }
+  function track(w) {
+    say('Scarico la nuova versione…');
+    btn.disabled = true;
+    w.addEventListener('statechange', function () {
+      if (w.state === 'installed') showReady(w);
+      else if (w.state === 'redundant' && !waiting) { say('Aggiornamento non riuscito. Riprova.'); btn.disabled = false; }
+    });
+  }
+
+  function check(manual) {
+    if (!reg) return Promise.resolve();
+    if (manual) { say('Controllo in corso…'); btn.disabled = true; }
+    return reg.update().then(function () {
+      lastCheck = Date.now();
+      if (reg.waiting) showReady(reg.waiting);
+      else if (reg.installing) track(reg.installing);
+      else if (manual) say('Sei aggiornato' + vtxt());
+    }).catch(function () {
+      if (manual) say(navigator.onLine ? 'Controllo non riuscito. Riprova tra poco.' : 'Nessuna connessione. Riprova quando sei online.');
+    }).then(function () {
+      if (manual && !waiting && !reg.installing) btn.disabled = false;
+    });
+  }
+
+  navigator.serviceWorker.addEventListener('message', function (e) {
+    if (e.data && e.data.type === 'VERSION') {
+      version = e.data.version;
+      if (!waiting) say('Pronta per l’uso offline' + vtxt());
+    }
+  });
+  navigator.serviceWorker.addEventListener('controllerchange', function () {
+    if (!hadController) { hadController = true; return; } // prima installazione: niente riavvio
+    if (reloading) return;
+    reloading = true;
+    location.reload();
+  });
+
+  btn.addEventListener('click', function () {
+    if (waiting) {
+      btn.disabled = true;
+      say('Riavvio…');
+      waiting.postMessage({ type: 'SKIP_WAITING' });
+      return;
+    }
+    check(true);
+  });
+
+  document.addEventListener('visibilitychange', function () {
+    if (!document.hidden && reg && !waiting && Date.now() - lastCheck > 10 * 60 * 1000) check(false);
+  });
+
+  navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).then(function (r) {
+    reg = r;
+    if (r.waiting && navigator.serviceWorker.controller) showReady(r.waiting);
+    r.addEventListener('updatefound', function () {
+      if (navigator.serviceWorker.controller && r.installing) track(r.installing);
+    });
+    return navigator.serviceWorker.ready;
+  }).then(function (r) {
+    if (r.active) r.active.postMessage({ type: 'GET_VERSION' });
+  }).catch(function () {
+    say('Uso offline non attivo. Apri la pagina da un indirizzo https.');
+    btn.hidden = true;
+  });
+})();
+</script>
+</body>
+</html>
