@@ -1,7 +1,7 @@
 /* Service worker di Arcade.
    Per rilasciare un aggiornamento: modifica i file, cambia VERSION qui sotto e ricarica tutto sull'hosting.
    Quando aggiungi un gioco, aggiungi i suoi file all'elenco CORE. */
-const VERSION = '1.5.0';
+const VERSION = '1.6.0';
 const CACHE = 'arcade-' + VERSION;
 
 // Senza questi file l'app non si installa.
@@ -24,6 +24,10 @@ const CORE = [
   'lander/index.html',
   'snake/',
   'snake/index.html',
+  'bolle/',
+  'bolle/index.html',
+  'tubi/',
+  'tubi/index.html',
   'manifest.webmanifest',
   'fonts/fonts.css',
   'icons/icon-192.png',
